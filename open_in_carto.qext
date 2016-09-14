@@ -1,0 +1,9 @@
+{
+	"name": "Open in CARTO",
+	"description": "Open dataset in CARTO from Qlik Sense",
+	"icon": "map",
+	"type": "visualization",
+	"version": 1.0,
+	"preview": "map",
+	"author": "CARTO"
+}
