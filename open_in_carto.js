@@ -65,6 +65,7 @@ define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"],
             lastRow = 0;
 
             var sqlUrl = "https://" + layout.account + ".carto.com/api/v2/sql/?api_key=" + layout.APIKey;
+            var vizjsonUrl = layout.url ? layout.url.replace("v2", "v3") : layout.url;
 
             var sendData = function (newTable) {
                 var sqlNames = "";
@@ -123,8 +124,8 @@ define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"],
                             .done(function () {
                                 status = IDLE;
                                 $("#open_in_carto").text("Success");
-                                if (layout.url) {
-                                    carto.deepInsights.createDashboard('#dashboard', layout.url);
+                                if (vizjsonUrl) {
+                                    carto.deepInsights.createDashboard('#dashboard', vizjsonUrl);
                                 }
                             })
                             .fail(function () {
@@ -178,8 +179,8 @@ define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"],
 
             if (status == IDLE) {
                 $element.html('<button id="open_in_carto">Open in CARTO</button><div id="dashboard" style="width: 100%; height: 80%"></div>');
-                if (layout.url) {
-                    carto.deepInsights.createDashboard('#dashboard', layout.url);
+                if (vizjsonUrl) {
+                    carto.deepInsights.createDashboard('#dashboard', vizjsonUrl);
                 }
             }
 
