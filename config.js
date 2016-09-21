@@ -4,32 +4,44 @@ define(function () {
             return {
                 uses: "settings",
                 items: {
-                    cartodb: {
+                    account: {
                         type: "items",
-                        label: "CartoDB settings",
+                        label: "Account settings",
                         items: {
                             account: {
                                 ref: "account",
                                 type: "string",
-                                label: "CartoDB user name",
+                                label: "User name",
                                 defaultValue: ""
                             },
                             APIKey: {
                                 ref: "APIKey",
                                 type: "string",
-                                label: "CartoDB API key",
+                                label: "API key",
                                 defaultValue: ""
                             },
                             tableName: {
                                 ref: "tableName",
                                 type: "string",
-                                label: "CartoDB dataset name",
+                                label: "Dataset name",
+                                defaultValue: ""
+                            }
+                        }
+                    },
+                    viz: {
+                        type: "items",
+                        label: "Visualization settings",
+                        items: {
+                            viz: {
+                                ref: "url",
+                                type: "string",
+                                label: "Visualization URL (viz.json)",
                                 defaultValue: ""
                             }
                         }
                     }
                 }
-            }
+            };
         }
-    }
+    };
 });

@@ -1,7 +1,7 @@
 /*
  * This extension creates a "Open in CARTO" button that can be used to send the contents of the hypercube, taking into account active filters, to CARTO.
  */
-define(["./config", "text!./open_in_carto.css"], function (config, css) {
+define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"], function (config, css, carto) {
     $("<style>").html(css).appendTo("head");
 
     var CHUNK_SIZE = 3000;
@@ -62,9 +62,12 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
             }
 
             // Code only reachable when all data pages from hypercube have been loaded
-            var url = "https://" + layout.account + ".carto.com/api/v2/sql/?api_key=" + layout.APIKey;
+            lastRow = 0;
 
-            var sendData = function (lastRow) {
+            var sqlUrl = "https://" + layout.account + ".carto.com/api/v2/sql/?api_key=" + layout.APIKey;
+
+            var sendData = function (newTable) {
+                var sqlNames = "";
                 var sqlValues = "";
 
                 // Take every row and add it to the insert statement
@@ -82,33 +85,90 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
                         var dataType = layout.qHyperCube.qDimensionInfo[idx].qTags[0];
                         if (dataType == "$geopoint") {
                             lonlat = JSON.parse(column.qText);
-                            sqlColumns += lonlat[1] + "," + lonlat[0];
+                            if (newTable) {
+                                sqlColumns += lonlat[1] + "," + lonlat[0];
+                                if (rowNum == 1) {
+                                    sqlNames += "latitude,longitude";
+                                }
+                            } else {
+                                sqlColumns += "ST_SetSRID(ST_MakePoint(" + lonlat[0] + "," + lonlat[1] + "),4326)," + lonlat[1] + "," + lonlat[0];
+                                if (rowNum == 1) {
+                                    sqlNames += "the_geom,latitude,longitude";
+                                }
+                            }
                         } else {
+                            if (rowNum == 1) {
+                                sqlNames += layout.qHyperCube.qDimensionInfo[idx].qFallbackTitle;
+                            }
                             sqlColumns += column.qText;
                         }
                     });
 
+                    if (rowNum == 1) {
+                        sqlNames = "(" + sqlNames + ")";
+                    }
                     sqlValues += "(" + sqlColumns + "),";
                 });
 
-                $.post(url, {q: "INSERT INTO " + layout.tableName + " VALUES " + sqlValues.slice(0, -1)})
-                .done(function () {
-                    $.post(url, {q: "SELECT cdb_cartodbfytable('" + layout.account + "', '" + layout.tableName + "'); UPDATE " + layout.tableName + " SET the_geom=ST_SetSRID(ST_MakePoint(longitude, latitude),4326);"})
+                if (newTable) {
+                    $.post(sqlUrl, {q: "INSERT INTO " + layout.tableName + " VALUES " + sqlValues.slice(0, -1)})
                     .done(function () {
-                        status = IDLE;
-                        $("#open_in_carto").text("Success");
-                    })
-                    .fail(function () {
-                        $.post(url, {q: "SELECT cdb_cartodbfytable('" + layout.tableName + "'); UPDATE " + layout.tableName + " SET the_geom=ST_SetSRID(ST_MakePoint(longitude, latitude),4326);"})
+                        $.post(sqlUrl, {q: "SELECT cdb_cartodbfytable('" + layout.account + "', '" + layout.tableName + "'); UPDATE " + layout.tableName + " SET the_geom=ST_SetSRID(ST_MakePoint(longitude, latitude),4326);"})
                         .done(function () {
                             status = IDLE;
                             $("#open_in_carto").text("Success");
                         })
                         .fail(function () {
-                            status = IDLE;
-                            $("#open_in_carto").text("Retry");
+                            $.post(sqlUrl, {q: "SELECT cdb_cartodbfytable('" + layout.tableName + "'); UPDATE " + layout.tableName + " SET the_geom=ST_SetSRID(ST_MakePoint(longitude, latitude),4326);"})
+                            .done(function () {
+                                status = IDLE;
+                                $("#open_in_carto").text("Success");
+                                if (layout.url) {
+                                    carto.deepInsights.createDashboard('#dashboard', layout.url);
+                                }
+                            })
+                            .fail(function () {
+                                status = IDLE;
+                                $("#open_in_carto").text("Retry");
+                            });
                         });
+                    })
+                    .fail(function () {
+                        status = IDLE;
+                        $("#open_in_carto").text("Retry");
                     });
+                } else {
+                    $.post(sqlUrl, {q: "INSERT INTO " + layout.tableName + " " + sqlNames + " VALUES " + sqlValues.slice(0, -1)})
+                    .done(function () {
+                        status = IDLE;
+                        $("#open_in_carto").text("Success");
+                    })
+                    .fail(function () {
+                        status = IDLE;
+                        $("#open_in_carto").text("Retry");
+                    });
+                }
+            };
+
+            var populateTable = function (newTable) {
+                // CREATE statement, will look into dimensions to get column names and types
+                var sqlQuery = "CREATE TABLE IF NOT EXISTS " + layout.tableName + " (";
+                var sqlColumns = "";
+                $.each(layout.qHyperCube.qDimensionInfo, function (idx, dimension) {
+                    var dataType = dimension.qTags[0];
+                    if (dataType == "$geopoint") {
+                        sqlColumns += "latitude double precision,longitude double precision,";
+                    } else if (dataType == "$numeric") {
+                        sqlColumns += dimension.qFallbackTitle + " numeric,";
+                    } else {
+                        sqlColumns += dimension.qFallbackTitle + " text,";
+                    }
+                });
+                sqlQuery += sqlColumns.slice(0, -1) + ")";
+
+                $.post(sqlUrl, {q: sqlQuery})
+                .done(function () {
+                    sendData(newTable);
                 })
                 .fail(function () {
                     status = IDLE;
@@ -117,7 +177,10 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
             };
 
             if (status == IDLE) {
-                $element.html('<button id="open_in_carto">Open in CARTO</button>');
+                $element.html('<button id="open_in_carto">Open in CARTO</button><div id="dashboard" style="width: 100%; height: 80%"></div>');
+                if (layout.url) {
+                    carto.deepInsights.createDashboard('#dashboard', layout.url);
+                }
             }
 
             $("#open_in_carto").off("click");  // Avoid multiple events on repainting
@@ -125,35 +188,12 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
                 status = SENDING;
                 $("#open_in_carto").text("Sending...");
 
-                $.post(url, {q: "DROP TABLE IF EXISTS " + layout.tableName + " CASCADE"})
+                $.post(sqlUrl, {q: "TRUNCATE TABLE " + layout.tableName})
                 .done(function () {
-                    // CREATE statement, will look into dimensions to get column names and types
-                    var sqlQuery = "CREATE TABLE " + layout.tableName + " (";
-                    var sqlColumns = "";
-                    $.each(layout.qHyperCube.qDimensionInfo, function (idx, dimension) {
-                        var dataType = dimension.qTags[0];
-                        if (dataType == "$geopoint") {
-                            sqlColumns += "latitude double precision,longitude double precision,";
-                        } else if (dataType == "$numeric") {
-                            sqlColumns += dimension.qFallbackTitle + " numeric,";
-                        } else {
-                            sqlColumns += dimension.qFallbackTitle + " text,";
-                        }
-                    });
-                    sqlQuery += sqlColumns.slice(0, -1) + ")";
-
-                    $.post(url, {q: sqlQuery})
-                    .done(function () {
-                        sendData();
-                    })
-                    .fail(function () {
-                        status = IDLE;
-                        $("#open_in_carto").text("Retry");
-                    });
+                    populateTable(false);
                 })
                 .fail(function () {
-                    status = IDLE;
-                    $("#open_in_carto").text("Retry");
+                    populateTable(true);
                 });
             });
         }
