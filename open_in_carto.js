@@ -83,6 +83,10 @@ define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"],
                             sqlColumns += ",";
                         }
 
+                        if (rowNum == 1 && sqlNames) {
+                            sqlNames += ",";
+                        }
+
                         var dataType = layout.qHyperCube.qDimensionInfo[idx].qTags[0];
                         if (dataType == "$geopoint") {
                             lonlat = JSON.parse(column.qText);
