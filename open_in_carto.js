@@ -195,7 +195,7 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
                 }
                 $element.html(html);
                 if (vizjsonUrl) {
-                    carto.deepInsights.createDashboard('#dashboard', vizjsonUrl);
+                    carto.deepInsights.createDashboard('#dashboard', vizjsonUrl, {apiKey: layout.APIKey});
                 }
             }
 
