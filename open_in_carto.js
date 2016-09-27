@@ -1,8 +1,9 @@
 /*
  * This extension creates a "Open in CARTO" button that can be used to send the contents of the hypercube, taking into account active filters, to CARTO.
  */
-define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"], function (config, css, carto) {
-    $("<style>").html(css).appendTo("head");
+define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./deep-insights.uncompressed"], function (config, css1, css2, carto) {
+    $("<style>").html(css1).appendTo("head");
+    $("<style>").html(css2).appendTo("head");
 
     var CHUNK_SIZE = 3000;
 
@@ -146,11 +147,13 @@ define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"],
                     $.post(sqlUrl, {q: "INSERT INTO " + layout.tableName + " " + sqlNames + " VALUES " + sqlValues.slice(0, -1)})
                     .done(function () {
                         status = IDLE;
-                        $("#open_in_carto").text("Success");
+                        $("#open_in_carto").addClass("ButtonCarto--confirm");
+                        $("#open_in_carto").html('<span class="ButtonCarto-text">SUCCESS</span></button>');
                     })
                     .fail(function () {
                         status = IDLE;
-                        $("#open_in_carto").text("Retry");
+                        $("#open_in_carto").addClass("ButtonCarto--confirm");
+                        $("#open_in_carto").html('<span class="ButtonCarto-text">RETRY</span></button>');
                     });
                 }
             };
@@ -177,12 +180,20 @@ define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"],
                 })
                 .fail(function () {
                     status = IDLE;
-                    $("#open_in_carto").text("Retry");
+                    $("#open_in_carto").addClass("ButtonCarto--confirm");
+                    $("#open_in_carto").html('<span class="ButtonCarto-text">RETRY</span></button>');
                 });
             };
 
             if (status == IDLE) {
-                $element.html('<button id="open_in_carto">Open in CARTO</button><div id="dashboard" style="width: 100%; height: 80%"></div>');
+                var html = '';
+                if (layout.account && layout.APIKey && layout.tableName) {
+                    html += '<button id="open_in_carto" class="ButtonCarto"><svg class="ButtonCarto-media" width="24px" height="24px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="logo" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><circle id="Oval-80" fill="#FFFFFF" opacity="0.25" cx="12" cy="12" r="12"></circle><circle id="CARTO" fill="#FFFFFF" cx="12" cy="12" r="4"></circle></g></svg><span class="ButtonCarto-text">Open in CARTO</span></button>' + html;
+                }
+                if (vizjsonUrl) {
+                    html += '<div id="dashboard" style="width: 100%; height: 80%"></div>';
+                }
+                $element.html(html);
                 if (vizjsonUrl) {
                     carto.deepInsights.createDashboard('#dashboard', vizjsonUrl);
                 }
@@ -191,7 +202,8 @@ define(["./config", "text!./deep-insights.css", "./deep-insights.uncompressed"],
             $("#open_in_carto").off("click");  // Avoid multiple events on repainting
             $("#open_in_carto").on("click", function () {
                 status = SENDING;
-                $("#open_in_carto").text("Sending...");
+                $("#open_in_carto").addClass("ButtonCarto--confirm");
+                $("#open_in_carto").html('<span class="ButtonCarto-text">SENDING</span></button>');
 
                 $.post(sqlUrl, {q: "TRUNCATE TABLE " + layout.tableName})
                 .done(function () {
