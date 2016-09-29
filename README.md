@@ -1,8 +1,12 @@
 # Open in CARTO
 
+(This README still doesn't explain how to create a map or dashboard in CARTO out of the exported dataset and visualize it back in Qlik, which is a feature recently added to the extenion. Also, screenshots are a bit out of date too. We'll fix this quite soon.)
+
 _Open dataset in CARTO from Qlik Sense_
 
 This extension creates a "Open in CARTO" button that can be used to send the (filtered) contents of the hypercube to CARTO.
+
+
 
 ## Installation
 
