@@ -1,5 +1,6 @@
 /*
  * This extension creates a "Open in CARTO" button that can be used to send the contents of the hypercube, taking into account active filters, to CARTO.
+ * It also provides a way to embed a CARTO visualization in Qlik by means of a viz.json
  */
 define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./deep-insights.uncompressed"], function (config, css1, css2, carto) {
     $("<style>").html(css1).appendTo("head");
@@ -66,16 +67,18 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
             lastRow = 0;
 
             var sqlUrl = "https://" + layout.account + ".carto.com/api/v2/sql/?api_key=" + layout.APIKey;
+
+            // viz.json's created with the old editor are by default v2, we need to make sure we get v3 from the server
             var vizjsonUrl = layout.url ? layout.url.replace("v2", "v3") : layout.url;
 
             var sendData = function (newTable) {
-                var sqlNames = "";
-                var sqlValues = "";
+                var sqlNames = "";  // Column names
+                var sqlValues = "";  // Values statement
 
                 // Take every row and add it to the insert statement
                 // TODO: maybe insert in chunks instead of all together? (not trivial, though)
                 paintObj.backendApi.eachDataRow(function (rowNum, row) {
-                    var sqlColumns = "";
+                    var sqlColumns = "";  // Temporary holder of the values statement of the current row
 
                     $.each(row, function (idx, column) {
                         var lonlat;
@@ -97,6 +100,7 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
                                     sqlNames += "latitude,longitude";
                                 }
                             } else {
+                                // Table has already been cartodbfied, so we need to add the_geom ourselves
                                 sqlColumns += "ST_SetSRID(ST_MakePoint(" + lonlat[0] + "," + lonlat[1] + "),4326)," + lonlat[1] + "," + lonlat[0];
                                 if (rowNum == 1) {
                                     sqlNames += "the_geom,latitude,longitude";
@@ -113,18 +117,22 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
                     if (rowNum == 1) {
                         sqlNames = "(" + sqlNames + ")";
                     }
+
                     sqlValues += "(" + sqlColumns + "),";
                 });
 
                 if (newTable) {
+                    // If table is new, we need to insert and cartodbfy
                     $.post(sqlUrl, {q: "INSERT INTO " + layout.tableName + " VALUES " + sqlValues.slice(0, -1)})
                     .done(function () {
+                        // Try with org user
                         $.post(sqlUrl, {q: "SELECT cdb_cartodbfytable('" + layout.account + "', '" + layout.tableName + "'); UPDATE " + layout.tableName + " SET the_geom=ST_SetSRID(ST_MakePoint(longitude, latitude),4326);"})
                         .done(function () {
                             status = IDLE;
                             $("#open_in_carto").text("Success");
                         })
                         .fail(function () {
+                            // Not an org user
                             $.post(sqlUrl, {q: "SELECT cdb_cartodbfytable('" + layout.tableName + "'); UPDATE " + layout.tableName + " SET the_geom=ST_SetSRID(ST_MakePoint(longitude, latitude),4326);"})
                             .done(function () {
                                 status = IDLE;
@@ -134,16 +142,19 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
                                 }
                             })
                             .fail(function () {
+                                // Cartodbfy failed
                                 status = IDLE;
                                 $("#open_in_carto").text("Retry");
                             });
                         });
                     })
                     .fail(function () {
+                        // Insert query failed
                         status = IDLE;
                         $("#open_in_carto").text("Retry");
                     });
                 } else {
+                    // If the table already existed, we don't need to cartodbfy, just insert right away
                     $.post(sqlUrl, {q: "INSERT INTO " + layout.tableName + " " + sqlNames + " VALUES " + sqlValues.slice(0, -1)})
                     .done(function () {
                         status = IDLE;
@@ -160,29 +171,33 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
 
             var populateTable = function (newTable) {
                 // CREATE statement, will look into dimensions to get column names and types
-                var sqlQuery = "CREATE TABLE IF NOT EXISTS " + layout.tableName + " (";
-                var sqlColumns = "";
-                $.each(layout.qHyperCube.qDimensionInfo, function (idx, dimension) {
-                    var dataType = dimension.qTags[0];
-                    if (dataType == "$geopoint") {
-                        sqlColumns += "latitude double precision,longitude double precision,";
-                    } else if (dataType == "$numeric") {
-                        sqlColumns += dimension.qFallbackTitle + " numeric,";
-                    } else {
-                        sqlColumns += dimension.qFallbackTitle + " text,";
-                    }
-                });
-                sqlQuery += sqlColumns.slice(0, -1) + ")";
+                if (newTable) {
+                    var sqlQuery = "CREATE TABLE " + layout.tableName + " (";
+                    var sqlColumns = "";
+                    $.each(layout.qHyperCube.qDimensionInfo, function (idx, dimension) {
+                        var dataType = dimension.qTags[0];
+                        if (dataType == "$geopoint") {
+                            sqlColumns += "latitude double precision,longitude double precision,";
+                        } else if (dataType == "$numeric") {
+                            sqlColumns += dimension.qFallbackTitle + " numeric,";
+                        } else {
+                            sqlColumns += dimension.qFallbackTitle + " text,";
+                        }
+                    });
+                    sqlQuery += sqlColumns.slice(0, -1) + ")";
 
-                $.post(sqlUrl, {q: sqlQuery})
-                .done(function () {
+                    $.post(sqlUrl, {q: sqlQuery})
+                    .done(function () {
+                        sendData(newTable);
+                    })
+                    .fail(function () {
+                        status = IDLE;
+                        $("#open_in_carto").addClass("ButtonCarto--confirm");
+                        $("#open_in_carto").html('<span class="ButtonCarto-text">RETRY</span></button>');
+                    });
+                } else {
                     sendData(newTable);
-                })
-                .fail(function () {
-                    status = IDLE;
-                    $("#open_in_carto").addClass("ButtonCarto--confirm");
-                    $("#open_in_carto").html('<span class="ButtonCarto-text">RETRY</span></button>');
-                });
+                }
             };
 
             if (status == IDLE) {
@@ -207,9 +222,11 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
 
                 $.post(sqlUrl, {q: "TRUNCATE TABLE " + layout.tableName})
                 .done(function () {
+                    // Truncate succeeded, so table doesn't need to be created
                     populateTable(false);
                 })
                 .fail(function () {
+                    // Truncate failed, which most likely means the table doesn't exist and needs to be created
                     populateTable(true);
                 });
             });
