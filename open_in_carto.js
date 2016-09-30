@@ -73,6 +73,7 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
 
             var sendData = function (newTable) {
                 var sqlNames = "";  // Column names
+                var sqlNamesFinished = false;
                 var sqlValues = "";  // Values statement
 
                 // Take every row and add it to the insert statement
@@ -87,7 +88,7 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
                             sqlColumns += ",";
                         }
 
-                        if (rowNum == 1 && sqlNames) {
+                        if (!sqlNamesFinished && sqlNames) {
                             sqlNames += ",";
                         }
 
@@ -96,26 +97,27 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
                             lonlat = JSON.parse(column.qText);
                             if (newTable) {
                                 sqlColumns += lonlat[1] + "," + lonlat[0];
-                                if (rowNum == 1) {
+                                if (!sqlNamesFinished) {
                                     sqlNames += "latitude,longitude";
                                 }
                             } else {
                                 // Table has already been cartodbfied, so we need to add the_geom ourselves
                                 sqlColumns += "ST_SetSRID(ST_MakePoint(" + lonlat[0] + "," + lonlat[1] + "),4326)," + lonlat[1] + "," + lonlat[0];
-                                if (rowNum == 1) {
+                                if (!sqlNamesFinished) {
                                     sqlNames += "the_geom,latitude,longitude";
                                 }
                             }
                         } else {
-                            if (rowNum == 1) {
+                            if (!sqlNamesFinished) {
                                 sqlNames += layout.qHyperCube.qDimensionInfo[idx].qFallbackTitle;
                             }
                             sqlColumns += column.qText;
                         }
                     });
 
-                    if (rowNum == 1) {
+                    if (!sqlNamesFinished) {
                         sqlNames = "(" + sqlNames + ")";
+                        sqlNamesFinished = true;
                     }
 
                     sqlValues += "(" + sqlColumns + "),";
