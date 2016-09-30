@@ -63,17 +63,17 @@ When sending data to an existing dataset, the dataset is effectively emptied bef
 
 One you have created _and published_ your geoapp in CARTO's Builder, you can embed it in Qlik Sense. First, get your share link at CARTO:
 
-![](viz_json.png)
+![](img/viz_json.png)
 
 Copy the link to the settings tab of the extension, and you should now see the visualization in Qlik Sense.
 
-![](embedded.png)
+![](img/embedded.png)
 
 If you are trying to visualize an app that makes use of CARTO's analysis features, make sure you fill in your API key field too.
 
 In any case, the _User name_ and _Dataset name_ fields are not required unless you want to export data to CARTO and visualize the corresponding app at the same time.
 
-![](dashboard.png)
+![](img/dashboard.png)
 
 ### Caveats
 
