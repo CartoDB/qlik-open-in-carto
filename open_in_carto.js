@@ -2,9 +2,8 @@
  * This extension creates a "Open in CARTO" button that can be used to send the contents of the hypercube, taking into account active filters, to CARTO.
  * It also provides a way to embed a CARTO visualization in Qlik by means of a viz.json
  */
-define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./deep-insights.uncompressed"], function (config, css1, css2, carto) {
-    $("<style>").html(css1).appendTo("head");
-    $("<style>").html(css2).appendTo("head");
+define(["./config", "text!./open_in_carto.css"], function (config, css) {
+    $("<style>").html(css).appendTo("head");
 
     var CHUNK_SIZE = 3000;
 
@@ -67,9 +66,6 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
             lastRow = 0;
 
             var sqlUrl = "https://" + layout.account + ".carto.com/api/v2/sql/?api_key=" + layout.APIKey;
-
-            // viz.json's created with the old editor are by default v2, we need to make sure we get v3 from the server
-            var vizjsonUrl = layout.url ? layout.url.replace("v2", "v3") : layout.url;
 
             var sendData = function (newTable) {
                 var sqlNames = "";  // Column names
@@ -207,13 +203,10 @@ define(["./config", "text!./deep-insights.css", "text!./open_in_carto.css", "./d
                 if (layout.account && layout.APIKey && layout.tableName) {
                     html += '<button id="open_in_carto" class="ButtonCarto"><svg class="ButtonCarto-media" width="24px" height="24px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="logo" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><circle id="Oval-80" fill="#FFFFFF" opacity="0.25" cx="12" cy="12" r="12"></circle><circle id="CARTO" fill="#FFFFFF" cx="12" cy="12" r="4"></circle></g></svg><span class="ButtonCarto-text">Open in CARTO</span></button>' + html;
                 }
-                if (vizjsonUrl) {
-                    html += '<div id="dashboard" style="width: 100%; height: 80%"></div>';
+                if (layout.url && layout.url.indexOf("builder") >= 0 && layout.url.indexOf("embed") >= 0) {
+                    html += '<iframe id="dashboard" src="' + layout.url + '" style="width: 100%; height: 80%"></iframe>';
                 }
                 $element.html(html);
-                if (vizjsonUrl) {
-                    carto.deepInsights.createDashboard('#dashboard', vizjsonUrl, {apiKey: layout.APIKey});
-                }
             }
 
             $("#open_in_carto").off("click");  // Avoid multiple events on repainting

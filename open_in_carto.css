@@ -7,6 +7,7 @@
     border-radius: 4px;
     cursor: pointer;
     text-transform: uppercase;
+    margin-bottom: 5px;
 }
 
 .ButtonCarto--confirm {
@@ -26,4 +27,8 @@
 .ButtonCarto-text {
     display: inline-block;
     vertical-align: middle;
+}
+
+#dashboard {
+    border: 0px;
 }

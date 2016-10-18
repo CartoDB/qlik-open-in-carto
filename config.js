@@ -35,7 +35,7 @@ define(function () {
                             viz: {
                                 ref: "url",
                                 type: "string",
-                                label: "Visualization URL (viz.json)",
+                                label: "Visualization embed URL",
                                 defaultValue: ""
                             }
                         }
