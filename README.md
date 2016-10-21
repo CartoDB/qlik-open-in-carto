@@ -74,3 +74,9 @@ If you are trying to visualize an app that makes use of CARTO's analysis feature
 In any case, the _User name_ and _Dataset name_ fields are not required unless you want to export data to CARTO and visualize the corresponding app at the same time.
 
 ![](img/dashboard.png)
+
+### Caveats
+
+In general, refreshing the visualization will not happen automatically because of caching issues. This will be fixed when carto.js v4 is available for general use. In the meantime, you can open the Developer tools in Qlik Sense (`Ctrl + Shift + Right button` and click on _Show DevTools_) and leave them there (you can move them to a separate tab) while using the extension.
+
+![](img/devtools.png)

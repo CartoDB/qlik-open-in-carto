@@ -3,7 +3,7 @@
 	"description": "Open dataset in CARTO from Qlik Sense",
 	"icon": "map",
 	"type": "visualization",
-	"version": 1.0,
+	"version": 1.3,
 	"preview": "map",
 	"author": "CARTO"
 }
