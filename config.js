@@ -25,6 +25,12 @@ define(function () {
                                 type: "string",
                                 label: "Dataset name",
                                 defaultValue: ""
+                            },
+                            autosync: {
+                                ref: "autoSync",
+                                type: "boolean",
+                                label: "Autosync",
+                                defaultValue: false
                             }
                         }
                     },

@@ -13,6 +13,8 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
 
     var lastRow = 0;
 
+    var dataChkSum = 0;
+
     return {
         initialProperties: {
             version: 0.1,
@@ -63,6 +65,14 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
             }
 
             // Code only reachable when all data pages from hypercube have been loaded
+
+            // TODO: Actually verify if data needs to be sent instead of always sending it.
+            var newDataChkSum = dataChkSum + 1;
+
+            var dataChanged = function () {
+                return dataChkSum == newDataChkSum ? false : true;
+            };
+
             lastRow = 0;
 
             var sqlUrl = "https://" + layout.account + ".carto.com/api/v2/sql/?api_key=" + layout.APIKey;
@@ -127,17 +137,20 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
                         $.post(sqlUrl, {q: "SELECT cdb_cartodbfytable('" + layout.account + "', '" + layout.tableName + "'); UPDATE " + layout.tableName + " SET the_geom=ST_SetSRID(ST_MakePoint(longitude, latitude),4326);"})
                         .done(function () {
                             status = IDLE;
-                            $("#open_in_carto").text("Success");
+                            $("#open_in_carto").text("SUCCESS");
+                            $("#dashboard").attr("src", function (i, val) { return val; });
+                            $("#dashboard").show();
+                            dataChkSum = newDataChkSum;
                         })
                         .fail(function () {
                             // Not an org user
                             $.post(sqlUrl, {q: "SELECT cdb_cartodbfytable('" + layout.tableName + "'); UPDATE " + layout.tableName + " SET the_geom=ST_SetSRID(ST_MakePoint(longitude, latitude),4326);"})
                             .done(function () {
                                 status = IDLE;
-                                $("#open_in_carto").text("Success");
-                                if (vizjsonUrl) {
-                                    carto.deepInsights.createDashboard('#dashboard', vizjsonUrl);
-                                }
+                                $("#open_in_carto").text("SUCCESS");
+                                $("#dashboard").attr("src", function (i, val) { return val; });
+                                $("#dashboard").show();
+                                dataChkSum = newDataChkSum;
                             })
                             .fail(function () {
                                 // Cartodbfy failed
@@ -158,6 +171,9 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
                         status = IDLE;
                         $("#open_in_carto").addClass("ButtonCarto--confirm");
                         $("#open_in_carto").html('<span class="ButtonCarto-text">SUCCESS</span></button>');
+                        $("#dashboard").attr("src", function (i, val) { return val; });
+                        $("#dashboard").show();
+                        dataChkSum = newDataChkSum;
                     })
                     .fail(function () {
                         status = IDLE;
@@ -198,19 +214,22 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
                 }
             };
 
+            var mustShowDashboard = function () {
+                return layout.url && layout.url.indexOf("builder") >= 0 && layout.url.indexOf("embed") >= 0 ? true : false;
+            };
+
             if (status == IDLE) {
                 var html = '';
                 if (layout.account && layout.APIKey && layout.tableName) {
                     html += '<button id="open_in_carto" class="ButtonCarto"><svg class="ButtonCarto-media" width="24px" height="24px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="logo" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><circle id="Oval-80" fill="#FFFFFF" opacity="0.25" cx="12" cy="12" r="12"></circle><circle id="CARTO" fill="#FFFFFF" cx="12" cy="12" r="4"></circle></g></svg><span class="ButtonCarto-text">Open in CARTO</span></button>' + html;
                 }
-                if (layout.url && layout.url.indexOf("builder") >= 0 && layout.url.indexOf("embed") >= 0) {
-                    html += '<iframe id="dashboard" src="' + layout.url + '" style="width: 100%; height: 80%"></iframe>';
+                if (mustShowDashboard()) {
+                    html += '<iframe id="dashboard" src="' + layout.url + '" style="display: none; width: 100%; height: 80%"></iframe>';
                 }
                 $element.html(html);
             }
 
-            $("#open_in_carto").off("click");  // Avoid multiple events on repainting
-            $("#open_in_carto").on("click", function () {
+            var openInCarto = function () {
                 status = SENDING;
                 $("#open_in_carto").addClass("ButtonCarto--confirm");
                 $("#open_in_carto").html('<span class="ButtonCarto-text">SENDING</span></button>');
@@ -224,7 +243,17 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
                     // Truncate failed, which most likely means the table doesn't exist and needs to be created
                     populateTable(true);
                 });
-            });
+            };
+
+            $("#open_in_carto").off("click");  // Avoid multiple events on repainting
+            $("#open_in_carto").on("click", openInCarto);
+
+            // If autosync is enabled and data has changed, let's send it over automatically
+            if (layout.autoSync && dataChanged()) {
+                openInCarto();
+            } else if (mustShowDashboard()) {
+                $("#dashboard").show();
+            }
         }
     };
 });
