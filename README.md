@@ -74,7 +74,3 @@ If you are trying to visualize an app that makes use of CARTO's analysis feature
 In any case, the _User name_ and _Dataset name_ fields are not required unless you want to export data to CARTO and visualize the corresponding app at the same time.
 
 ![](img/dashboard.png)
-
-### Caveats
-
-In some cases, refreshing the visualization will not happen automatically. If that is the case, you will have to zoom in/out or pan the map for the changes to be visible or even reload the page in Qlik Sense, due to the caching policy it implements.
