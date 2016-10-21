@@ -227,6 +227,9 @@ define(["./config", "text!./open_in_carto.css"], function (config, css) {
                     html += '<iframe id="dashboard" src="' + layout.url + '" style="display: none; width: 100%; height: 80%"></iframe>';
                 }
                 $element.html(html);
+                if (mustShowDashboard()) {
+                    $("#dashboard").contents().find("head").append('<meta http-Equiv="Cache-Control" Content="no-cache" /><meta http-Equiv="Pragma" Content="no-cache" /><meta http-Equiv="Expires" Content="0" />');
+                }
             }
 
             var openInCarto = function () {
