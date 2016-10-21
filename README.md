@@ -61,7 +61,7 @@ When sending data to an existing dataset, the dataset is effectively emptied bef
 
 ### Configuration
 
-One you have created _and published_ your geoapp in CARTO's Builder, you can embed it in Qlik Sense. First, get your share link at CARTO:
+One you have created _and published_ your geoapp in CARTO's Builder, you can embed it in Qlik Sense. First, get your "embed it" link at CARTO:
 
 ![](img/viz_json.png)
 
