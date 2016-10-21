@@ -25,7 +25,7 @@ You can have as many other dimensions as you like. Those dimensions will be avai
 
 ![](img/dimensions.png)
 
-Also, please make sure you fill in your CARTO credentials and desired dataset name.
+Also, please make sure you fill in your CARTO credentials and desired dataset name. If _Autosync_ is enabled, everytime data is refreshed in Qlik, it will be sent automatically to CARTO without the need to click on the _Open in CARTO_ button, and the visualization will be reloaded automaticaally too.
 
 ![](img/credentials.png)
 
@@ -77,4 +77,4 @@ In any case, the _User name_ and _Dataset name_ fields are not required unless y
 
 ### Caveats
 
-The embedded app will not automatically respond to any filtering done in Qlik, but you always have the option of using the _Open in CARTO_ button to send filtered data to CARTO and refresh the visualization. Still, refreshing the visualization will not always happen automatically. In most cases, you will have to zoom in/out or pan the map for the changes to be visible. In some cases, you may even have to reload the page in Qlik Sense, due to the caching policy it implements.
+In some cases, refreshing the visualization will not happen automatically. If that is the case, you will have to zoom in/out or pan the map for the changes to be visible or even reload the page in Qlik Sense, due to the caching policy it implements.
